@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+# fail fast
+set -e
+
+# debug
+# set -x
+
+# clean up leaking environment
+unset GIT_DIR
+
+# config
+STUNNEL_VERSION="5.30"
+
+# parse params
+BUILD_DIR=$1
+CACHE_DIR=$2
+
+function indent() {
+  c='s/^/       /'
+  case $(uname) in
+    Darwin) sed -l "$c";;
+    *)      sed -u "$c";;
+  esac
+}
+
+echo "Using stunnel version: ${STUNNEL_VERSION}" | indent
+
+# vendor directory
+VENDORED_STUNNEL="vendor/stunnel"
+
+# vendor stunnel into the slug
+echo "-----> Fetching and vendoring stunnel into slug"
+mkdir -p "$BUILD_DIR/$VENDORED_STUNNEL"
+tar xzf stunnel-${STUNNEL_VERSION}.tgz -C "${BUILD_DIR}/${VENDORED_STUNNEL}"
+
+echo "-----> stunnel done"
