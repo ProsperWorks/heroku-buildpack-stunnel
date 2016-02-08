@@ -31,7 +31,7 @@ echo "Using stunnel version: ${STUNNEL_VERSION}" | indent
 VENDORED_STUNNEL="vendor/stunnel"
 
 # vendor stunnel into the slug
-echo "-----> Fetching and vendoring stunnel into slug"
+echo "-----> Vendoring stunnel into slug"
 mkdir -p "$BUILD_DIR/$VENDORED_STUNNEL"
 tar xzf stunnel-${STUNNEL_VERSION}.tgz -C "${BUILD_DIR}/${VENDORED_STUNNEL}"
 
