@@ -35,10 +35,9 @@ STUNNEL_PACKAGE="stunnel-5.48"
 cd "$BUILDPACK_DIR"
 tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
-./configure
+./configure --prefix /app/vendor/stunnel
 make -j "${NUM_JOBS:-5}"
-mkdir -p "$BUILD_DIR/vendor"
-rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/stunnel/"
+make install
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
