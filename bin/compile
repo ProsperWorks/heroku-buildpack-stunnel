@@ -24,6 +24,10 @@ ENV_DIR="$3"
 #
 BUILDPACK_DIR="$PWD"
 
+# Place where we stunnel will be installed on the executing dyno.
+#
+PREFIX_DIR="/app/vendor/stunnel"
+
 # Stunnel release source tarballs come from:
 #
 #   https://www.stunnel.org/downloads.html
@@ -35,9 +39,9 @@ STUNNEL_PACKAGE="stunnel-5.48"
 cd "$BUILDPACK_DIR"
 tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
-./configure --prefix /app/vendor/stunnel
+./configure --prefix "$PREFIX_DIR"
 make -j "${NUM_JOBS:-5}"
-make install
+env DESTDIR="$BUILDPACK_DIR" make install
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
@@ -46,4 +50,4 @@ make install
 #
 PROFILE_D_SH="$BUILD_DIR/.profile.d/guest-env.sh"
 mkdir -p "$BUILD_DIR/.profile.d"
-echo "export PATH=\"\$HOME/vendor/stunnel/bin:\$PATH\"" >> "$PROFILE_D_SH"
+echo "export PATH=\"$PREFIX_DIR/bin:\$PATH\"" >> "$PROFILE_D_SH"
