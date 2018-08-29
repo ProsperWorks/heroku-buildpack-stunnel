@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Unofficial Bash strict mode.  Brittle but fails fast when
-# assumptions aren't all perfect.
+# Unofficial Bash strict mode.
+#
+# Brittle but fails fast when assumptions are not met.
 #
 set -euo pipefail
 
@@ -27,17 +28,17 @@ BUILDPACK_DIR="$PWD"
 #
 #   https://www.stunnel.org/downloads.html
 #
-# This is a fast compile, ~5s, so we skip the risk and hassle of
-# exploiting $CACHE_DIR.
+# This is a fast build, 8s for './configure' and 5s for 'make -j 5',
+# so we skip the risk and hassle of exploiting $CACHE_DIR.
 #
 STUNNEL_PACKAGE="stunnel-5.48"
 cd "$BUILDPACK_DIR"
-time tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
+tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
-time ./configure
-time make -j "${NUM_JOBS:-5}"
+./configure
+make -j "${NUM_JOBS:-5}"
 mkdir -p "$BUILD_DIR/vendor"
-time rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/stunnel/"
+rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/stunnel/"
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
@@ -47,6 +48,3 @@ time rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/st
 PROFILE_D_SH="$BUILD_DIR/.profile.d/guest-env.sh"
 mkdir -p "$BUILD_DIR/.profile.d"
 echo "export PATH=\"\$HOME/vendor/stunnel/bin:\$PATH\"" >> "$PROFILE_D_SH"
-
-echo HAPPY
-exit 123
