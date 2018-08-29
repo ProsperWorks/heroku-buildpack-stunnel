@@ -34,7 +34,7 @@ STUNNEL_PACKAGE="stunnel-5.48"
 cd "$BUILDPACK_DIR"
 time tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
-./configure
+time ./configure
 time make -j "${NUM_JOBS:-5}"
 mkdir -p "$BUILD_DIR/vendor"
 time rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/stunnel/"
@@ -47,3 +47,6 @@ time rsync -ar --delete "$BUILDPACK_DIR/$STUNNEL_PACKAGE/" "$BUILD_DIR/vendor/st
 PROFILE_D_SH="$BUILD_DIR/.profile.d/guest-env.sh"
 mkdir -p "$BUILD_DIR/.profile.d"
 echo "export PATH=\"\$HOME/vendor/stunnel/bin:\$PATH\"" >> "$PROFILE_D_SH"
+
+echo HAPPY
+exit 123
