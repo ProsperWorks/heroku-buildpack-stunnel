@@ -1,38 +1,111 @@
 #!/usr/bin/env bash
-# bin/compile <build-dir> <cache-dir> <env-dir>
 
-# fail fast
-set -e
+# Unofficial Bash strict mode.  Brittle but fails fast when
+# assumptions aren't all perfect.
+#
+set -euo pipefail
 
-# debug
-# set -x
+# Echo all the commands here as they are executed.  Noisy but handy
+# for debugging.
+#
+set -x
 
-# clean up leaking environment
-unset GIT_DIR
+# Standard https://devcenter.heroku.com/articles/buildpack-api#buildpack-api
+# call syntax: $BUILD_DIR $CACHE_DIR $ENV_DIR.
+#
+BUILD_DIR="$1"
+CACHE_DIR="$2"
+ENV_DIR="$3"
 
-# config
-STUNNEL_VERSION="5.30"
+# Place for intermediate artifacts which should not be carried on into
+# the slug.
+#
+TMP_DIR="$PWD"
 
-# parse params
-BUILD_DIR=$1
-CACHE_DIR=$2
+# The $CACHE_DIR might not already be there: make sure it is.
+#
+mkdir -p "$CACHE_DIR"
 
-function indent() {
-  c='s/^/       /'
-  case $(uname) in
-    Darwin) sed -l "$c";;
-    *)      sed -u "$c";;
-  esac
+# To make sure that the executables which we build in this script are
+# available in the $PATH when we run our dynos, we accumulate the path
+# to each bin directory in .profile.d script $GUEST_ENV_SH.
+#
+# Per https://devcenter.heroku.com/articles/buildpack-api all
+# .profile.d scripts are sourced on the dyno before launching the
+# dynos command.
+#
+#
+GUEST_ENV_SH="$BUILD_DIR/.profile.d/guest-env.sh"
+mkdir -p "$BUILD_DIR/.profile.d"
+
+# need_to_build checks if a package was already built into $CACHE_DIR.
+#
+# If $CACHE_DIR/$1 is found, need_to_build exits 1.  The caller does
+# not need to build.
+#
+# Otherwise, to help the caller build, maybe_get unpacks the tarball,
+# cds into the resulting directory, then exits 0.
+#
+# The caller is expected to detect exit 0 and build the project on the
+# assumption that the current directory is "in" the tarball directory.
+#
+# Either way, the caller should follow up with post_build.
+#
+function need_to_build
+{
+    local package="$1"
+    local cache_dir="$CACHE_DIR/$package"
+    local tarball="$package.tar.gz"
+    echo "======================================================"
+    echo "checking cache for $package"
+    echo "------------------------------------------------------"
+    if [ -d "$cache_dir" ]
+    then
+        echo "$package in cache, skipping unpack and build"
+        false
+    else
+        echo "$package not in cache, unpacking from tarball"
+        cd "$TMP_DIR"
+        gunzip "$BUILD_DIR/$package.tar.gz" --to-stdout | tar -xf -
+        cd "$package"
+        true
+    fi
 }
 
-echo "Using stunnel version: ${STUNNEL_VERSION}" | indent
+# post_build makes sure the final build targets end up in the slug.
+#
+function post_build
+{
+    local package="$1"
+    echo "======================================================"
+    echo "post-build install for $package"
+    echo "------------------------------------------------------"
+    mkdir -p "$BUILD_DIR/vendor"
+    rsync -ar --delete "$CACHE_DIR/$package/" "$BUILD_DIR/vendor/$package/"
+    echo "export PATH=\"\$HOME/vendor/$package/bin:\$PATH\"" >> "$GUEST_ENV_SH"
+    echo "======================================================"
+}
 
-# vendor directory
-VENDORED_STUNNEL="vendor/stunnel"
 
-# vendor stunnel into the slug
-echo "-----> Vendoring stunnel into slug"
-mkdir -p "$BUILD_DIR/$VENDORED_STUNNEL"
-tar xzf stunnel-${STUNNEL_VERSION}.tgz -C "${BUILD_DIR}/${VENDORED_STUNNEL}"
+# Stunnel release source tarballs come from:
+#
+#   https://www.stunnel.org/downloads.html
+#
+STUNNEL_PACKAGE="stunnel-5.48"
+if need_to_build "$STUNNEL_PACKAGE"
+then
+    make -j 5
+    make install
+fi
+post_build "$STUNNEL_PACKAGE"
 
-echo "-----> stunnel done"
+# To save slug space, we remove the source tarballs.
+#
+echo "======================================================"
+echo "remove source tarballs to control compressed slug size"
+echo "------------------------------------------------------"
+du -scm "$BUILD_DIR"/*.tar.gz
+rm "$BUILD_DIR"/*.tar.gz
+echo "------------------------------------------------------"
+echo "all done compiling slug"
+echo "======================================================"
