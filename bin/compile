@@ -42,11 +42,12 @@ cd "$STUNNEL_PACKAGE"
 ./configure --prefix "$PREFIX_DIR"
 make -j "${NUM_JOBS:-5}"
 env DESTDIR="$BUILD_DIR" make install
-cd "$BUILD_DIR"
-mkdir -p vendor
-mv       app/vendor/stunnel vendor
-rmdir    app/vendor
-rmdir    app
+find "$BUILD_DIR" -name stunnel
+ls -l "$BUILD_DIR"
+mkdir -p "$BUILD_DIR/vendor"
+mv       "$BUILD_DIR/$PREFIX_DIR" "$BUILD_DIR/vendor/stunnel"
+#rmdir    "$BUILD_DIR/app/vendor"
+#rmdir    "$BUILD_DIR/app"
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
