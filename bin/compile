@@ -1,38 +1,56 @@
 #!/usr/bin/env bash
-# bin/compile <build-dir> <cache-dir> <env-dir>
 
-# fail fast
-set -e
+# Unofficial Bash strict mode.
+#
+# Brittle but fails fast when assumptions are not met.
+#
+set -euo pipefail
 
-# debug
-# set -x
+# Echo all the commands here as they are executed.  Noisy but handy
+# for debugging.
+#
+set -x
 
-# clean up leaking environment
-unset GIT_DIR
+# Standard buildpack bin/compile call syntax, per:
+#
+#   https://devcenter.heroku.com/articles/buildpack-api#buildpack-api
+#
+BUILD_DIR="$1"
+CACHE_DIR="$2"
+ENV_DIR="$3"
 
-# config
-STUNNEL_VERSION="5.30"
+# Place for intermediate artifacts which should not be carried on into
+# the slug.
+#
+BUILDPACK_DIR="$PWD"
 
-# parse params
-BUILD_DIR=$1
-CACHE_DIR=$2
+# Stunnel release source tarballs come from:
+#
+#   https://www.stunnel.org/downloads.html
+#
+# This is a fast build, 8s for './configure' and 5s for 'make -j 5',
+# so we skip the risk and hassle of exploiting $CACHE_DIR.
+#
+# There is some trickery here with DESTDIR, so we can tell stunnel to
+# compile for installation at /app/vendor/stunnel, but it actually
+# gets copied to $BUILD_DIR/vendor/stunnel.
+#
+STUNNEL_PACKAGE="stunnel-5.48"
+cd "$BUILDPACK_DIR"
+tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
+cd "$STUNNEL_PACKAGE"
+./configure --prefix /app/vendor/stunnel
+make -j "${NUM_JOBS:-5}"
+env DESTDIR="$BUILD_DIR/stunnel" make install
+mkdir -p "$BUILD_DIR/vendor"
+mv       "$BUILD_DIR/stunnel/app/vendor/stunnel" "$BUILD_DIR/vendor/stunnel"
+rm -rf   "$BUILD_DIR/stunnel"
 
-function indent() {
-  c='s/^/       /'
-  case $(uname) in
-    Darwin) sed -l "$c";;
-    *)      sed -u "$c";;
-  esac
-}
-
-echo "Using stunnel version: ${STUNNEL_VERSION}" | indent
-
-# vendor directory
-VENDORED_STUNNEL="vendor/stunnel"
-
-# vendor stunnel into the slug
-echo "-----> Vendoring stunnel into slug"
-mkdir -p "$BUILD_DIR/$VENDORED_STUNNEL"
-tar xzf stunnel-${STUNNEL_VERSION}.tgz -C "${BUILD_DIR}/${VENDORED_STUNNEL}"
-
-echo "-----> stunnel done"
+# We make sure this stunnel is near the front of the $PATH when the
+# dyno excecutes, per:
+#
+#   https://devcenter.heroku.com/articles/buildpack-api#profile-d-scripts
+#
+PROFILE_D_SH="$BUILD_DIR/.profile.d/stunnel.sh"
+mkdir -p "$BUILD_DIR/.profile.d"
+echo "export PATH=\"/app/vendor/stunnel/bin:\$PATH\"" >> "$PROFILE_D_SH"
