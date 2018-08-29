@@ -24,10 +24,6 @@ ENV_DIR="$3"
 #
 BUILDPACK_DIR="$PWD"
 
-# Place where we stunnel will be installed on the executing dyno.
-#
-PREFIX_DIR="/app/vendor/stunnel"
-
 # Stunnel release source tarballs come from:
 #
 #   https://www.stunnel.org/downloads.html
@@ -35,19 +31,20 @@ PREFIX_DIR="/app/vendor/stunnel"
 # This is a fast build, 8s for './configure' and 5s for 'make -j 5',
 # so we skip the risk and hassle of exploiting $CACHE_DIR.
 #
+# There is some trickery here with DESTDIR, so we can tell stunnel to
+# compile for installation at /app/vendor/stunnel, but it actually
+# gets copied to $BUILD_DIR/vendor/stunnel.
+#
 STUNNEL_PACKAGE="stunnel-5.48"
 cd "$BUILDPACK_DIR"
 tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
-./configure --prefix "$PREFIX_DIR"
+./configure --prefix /app/vendor/stunnel
 make -j "${NUM_JOBS:-5}"
-env DESTDIR="$BUILD_DIR" make install
-find "$BUILD_DIR" -name stunnel
-ls -l "$BUILD_DIR"
+env DESTDIR="$BUILD_DIR/stunnel" make install
 mkdir -p "$BUILD_DIR/vendor"
-mv       "$BUILD_DIR/$PREFIX_DIR" "$BUILD_DIR/vendor/stunnel"
-#rmdir    "$BUILD_DIR/app/vendor"
-#rmdir    "$BUILD_DIR/app"
+mv       "$BUILD_DIR/stunnel/app/vendor/stunnel" "$BUILD_DIR/vendor/stunnel"
+rm -rf   "$BUILD_DIR/stunnel"
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
