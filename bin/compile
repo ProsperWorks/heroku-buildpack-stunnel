@@ -66,6 +66,10 @@ function need_to_build
     else
         echo "$package not in cache, unpacking from tarball"
         cd "$TMP_DIR"
+        ls -l "$BUILD_DIR"
+        ls -l "$CACHE_DIR"
+        ls -l "$ENV_DIR"
+        ls -l "$TMP_DIR"
         gunzip "$BUILD_DIR/$package.tar.gz" --to-stdout | tar -xf -
         cd "$package"
         true
@@ -94,7 +98,8 @@ function post_build
 STUNNEL_PACKAGE="stunnel-5.48"
 if need_to_build "$STUNNEL_PACKAGE"
 then
-    make -j 5
+    ./configure
+    time make -j 5
     make install
 fi
 post_build "$STUNNEL_PACKAGE"
