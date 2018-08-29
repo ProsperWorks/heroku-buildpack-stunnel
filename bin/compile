@@ -100,6 +100,11 @@ if need_to_build "$STUNNEL_PACKAGE"
 then
     ./configure
     time make -j 5
-    make install
+    whoami
+    pwd
+    ls -l /usr
+    ls -l /usr/local
+    ls -l /usr/local/bin
+    #make install
 fi
 post_build "$STUNNEL_PACKAGE"
