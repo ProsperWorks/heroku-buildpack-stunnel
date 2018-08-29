@@ -41,7 +41,7 @@ tar xvfz "$BUILDPACK_DIR/$STUNNEL_PACKAGE.tar.gz"
 cd "$STUNNEL_PACKAGE"
 ./configure --prefix "$PREFIX_DIR"
 make -j "${NUM_JOBS:-5}"
-env DESTDIR="$BUILDPACK_DIR" make install
+env DESTDIR="$BUILD_DIR" make install
 
 # We make sure this stunnel is near the front of the $PATH when the
 # dyno excecutes, per:
