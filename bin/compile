@@ -51,6 +51,6 @@ rm -rf   "$BUILD_DIR/stunnel"
 #
 #   https://devcenter.heroku.com/articles/buildpack-api#profile-d-scripts
 #
-PROFILE_D_SH="$BUILD_DIR/.profile.d/guest-env.sh"
+PROFILE_D_SH="$BUILD_DIR/.profile.d/stunnel.sh"
 mkdir -p "$BUILD_DIR/.profile.d"
-echo "export PATH=\"$PREFIX_DIR/bin:\$PATH\"" >> "$PROFILE_D_SH"
+echo "export PATH=\"/app/vendor/stunnel/bin:\$PATH\"" >> "$PROFILE_D_SH"
