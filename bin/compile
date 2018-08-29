@@ -70,7 +70,7 @@ function need_to_build
         ls -l "$CACHE_DIR"
         ls -l "$ENV_DIR"
         ls -l "$TMP_DIR"
-        gunzip "$BUILD_DIR/$package.tar.gz" --to-stdout | tar -xf -
+        gunzip "$TMP_DIR/$package.tar.gz" --to-stdout | tar -xf -
         cd "$package"
         true
     fi
@@ -103,14 +103,3 @@ then
     make install
 fi
 post_build "$STUNNEL_PACKAGE"
-
-# To save slug space, we remove the source tarballs.
-#
-echo "======================================================"
-echo "remove source tarballs to control compressed slug size"
-echo "------------------------------------------------------"
-du -scm "$BUILD_DIR"/*.tar.gz
-rm "$BUILD_DIR"/*.tar.gz
-echo "------------------------------------------------------"
-echo "all done compiling slug"
-echo "======================================================"
